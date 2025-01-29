@@ -15,7 +15,7 @@ async function generateAIResponse(question) {
           content: `Wytłumacz rozwiązanie tego problemu: ${question}`,
         },
       ],
-      max_tokens: 100,
+      max_tokens: 1000,
     });
     return response.choices[0].message.content.trim();
   } catch (error) {

@@ -11,7 +11,11 @@
   "description": "",
   "dependencies": {
     "dotenv": "^16.4.7",
+    "latex-to-unicode": "^0.1.0",
+    "mathjax-full": "^3.2.2",
+    "mathjs": "^14.1.0",
     "node-telegram-bot-api": "^0.66.0",
-    "openai": "^4.80.1"
+    "openai": "^4.80.1",
+    "turndown": "^7.2.0"
   }
 }

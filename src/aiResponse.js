@@ -1,19 +1,26 @@
-const { Configuration, OpenAIApi } = require("openai");
+const OpenAI = require("openai");
 const { OPENAI_API_KEY } = require("../config/config");
 
-const openai = new OpenAIApi(new Configuration({ apiKey: OPENAI_API_KEY }));
+const openai = new OpenAI({
+  apiKey: OPENAI_API_KEY,
+});
 
 async function generateAIResponse(question) {
   try {
-    const completion = await openai.createCompletion({
-      model: "text-davinci-003",
-      prompt: `Explain the following math concept or solve the problem: ${question}`,
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "user",
+          content: `Wytłumacz rozwiązanie tego problemu: ${question}`,
+        },
+      ],
       max_tokens: 100,
     });
-    return completion.data.choices[0].text.trim();
+    return response.choices[0].message.content.trim();
   } catch (error) {
-    console.error("Error generating AI response:", error);
-    return "Sorry, I couldn't process that question. Please try again.";
+    console.error("Błąd", error);
+    return "Przepraszam, nie mogłem przetworzyć tego pytania. Spróbuj ponownie.";
   }
 }
 

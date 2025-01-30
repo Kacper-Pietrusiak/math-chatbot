@@ -16,7 +16,7 @@ async function handleCommand(bot, msg) {
   } else if (text.toLowerCase().startsWith("/task")) {
     const level = text.split(" ")[1] || "easy";
     bot.sendMessage(chatId, generateMathTask(level));
-  } else if (text.toLowerCase().startsWith("solve ")) {
+  } else if (text.toLowerCase().startsWith("/solve ")) {
     const equation = text.substring(6).trim();
     console.log("🧮 Solving equation:", equation);
     await solveEquation(equation, bot, chatId); // Poprawione wywołanie

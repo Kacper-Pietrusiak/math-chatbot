@@ -10,7 +10,10 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "chart.js": "^3.9.1",
+    "chartjs-node-canvas": "^4.1.6",
     "dotenv": "^16.4.7",
+    "fs": "^0.0.1-security",
     "latex-to-unicode": "^0.1.0",
     "mathjax-full": "^3.2.2",
     "mathjs": "^14.1.0",

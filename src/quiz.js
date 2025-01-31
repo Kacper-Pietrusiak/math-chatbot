@@ -1,84 +1,98 @@
-const { generateMathTask } = require("./mathTasks");
-const quizzes = {}; // Przechowuje aktywne quizy dla użytkowników
+const { generateMathTask, generateMathAnswer } = require("./mathTasks");
 
-function startQuiz(chatId, bot, difficulty = "medium") {
-  console.log(
-    `🎯 Rozpoczynanie quizu dla użytkownika ${chatId} (Poziom: ${difficulty})`
-  );
+const activeQuizzes = new Map(); // Przechowuje quizy dla użytkowników
 
-  quizzes[chatId] = {
-    score: 0,
-    totalQuestions: 3,
+async function startQuiz(chatId, bot, level = "medium") {
+  console.log(`🎯 Rozpoczynanie quizu dla chatId: ${chatId}, poziom: ${level}`);
+
+  const quiz = {
+    questions: [],
+    answers: [],
     currentQuestion: 0,
-    difficulty,
-    lastQuestion: null, // Ostatnie pytanie
-    lastAnswer: null, // Poprawna odpowiedź
+    score: 0,
   };
 
-  sendNextQuestion(chatId, bot);
-}
+  for (let i = 0; i < 3; i++) {
+    const question = await generateMathTask(level, "word");
+    const answer = await generateMathAnswer(question);
 
-function sendNextQuestion(chatId, bot) {
-  if (!quizzes[chatId]) return;
-
-  const quiz = quizzes[chatId];
-
-  if (quiz.currentQuestion >= quiz.totalQuestions) {
-    bot.sendMessage(
-      chatId,
-      `🏆 Koniec quizu! Twój wynik: ${quiz.score}/${quiz.totalQuestions}`
-    );
-    delete quizzes[chatId]; // Usunięcie quizu po zakończeniu
-    return;
-  }
-
-  quiz.currentQuestion++;
-
-  // **Generowanie nowego zadania**
-  let question;
-  let answer;
-
-  while (true) {
-    question = generateMathTask(quiz.difficulty);
-    const parts = question.split("=");
-
-    if (parts.length === 2) {
-      try {
-        answer = eval(parts[1].trim()); // Obliczenie poprawnej odpowiedzi
-        if (!isNaN(answer)) break; // Przerwij pętlę, jeśli odpowiedź jest liczbą
-      } catch (error) {
-        console.error("❌ Błąd przetwarzania pytania, generujemy nowe.");
-      }
+    if (question && answer) {
+      quiz.questions.push(question);
+      quiz.answers.push(answer);
+    } else {
+      console.error("❌ Nie udało się wygenerować pytania lub odpowiedzi!");
     }
   }
 
-  quiz.lastQuestion = question;
-  quiz.lastAnswer = parseFloat(answer);
+  activeQuizzes.set(chatId, quiz);
+  askQuestion(chatId, bot);
+}
 
-  console.log(`📩 Nowe pytanie ${quiz.currentQuestion}: ${question}`);
+function askQuestion(chatId, bot) {
+  const quiz = activeQuizzes.get(chatId);
+
+  if (!quiz || quiz.currentQuestion >= quiz.questions.length) {
+    bot.sendMessage(chatId, `🏆 Koniec quizu! Twój wynik: ${quiz.score}/3`);
+    activeQuizzes.delete(chatId);
+    return;
+  }
+
+  const question = quiz.questions[quiz.currentQuestion];
   bot.sendMessage(
     chatId,
-    `❓ Pytanie ${quiz.currentQuestion}/${quiz.totalQuestions}:\n${question}`
+    `❓ Pytanie ${quiz.currentQuestion + 1}/3:\n${question}`
   );
 }
 
-function checkAnswer(chatId, bot, answer) {
-  if (!quizzes[chatId]) return;
+async function checkAnswer(chatId, bot, userAnswer) {
+  const quiz = activeQuizzes.get(chatId);
 
-  const quiz = quizzes[chatId];
-  const userAnswer = parseFloat(answer);
+  if (!quiz || quiz.currentQuestion >= quiz.questions.length) {
+    return;
+  }
 
-  if (userAnswer === quiz.lastAnswer) {
-    bot.sendMessage(chatId, "✅ Poprawna odpowiedź!");
+  const correctAnswer = quiz.answers[quiz.currentQuestion].trim();
+
+  // **Sprawdzamy poprawność odpowiedzi**
+  if (isAnswerCorrect(userAnswer, correctAnswer)) {
     quiz.score++;
+    bot.sendMessage(chatId, "✅ Poprawna odpowiedź!");
   } else {
     bot.sendMessage(
       chatId,
-      `❌ Niepoprawna! Poprawna odpowiedź to: ${quiz.lastAnswer}`
+      `❌ Niepoprawna! Prawidłowa odpowiedź to: ${correctAnswer}`
     );
   }
 
-  sendNextQuestion(chatId, bot);
+  quiz.currentQuestion++;
+  askQuestion(chatId, bot);
+}
+
+/**
+ * ✅ Funkcja sprawdzająca poprawność odpowiedzi (elastyczna analiza tekstu)
+ */
+function isAnswerCorrect(userAnswer, correctAnswer) {
+  // Usuwamy białe znaki i zamieniamy na małe litery
+  userAnswer = userAnswer.trim().toLowerCase();
+  correctAnswer = correctAnswer.trim().toLowerCase();
+
+  // 1️⃣ **Jeśli liczby się zgadzają, to uznajemy odpowiedź**
+  const userNumber = userAnswer.match(/\d+/); // Znajduje liczbę w odpowiedzi użytkownika
+  const correctNumber = correctAnswer.match(/\d+/); // Znajduje liczbę w poprawnej odpowiedzi
+
+  if (userNumber && correctNumber && userNumber[0] === correctNumber[0]) {
+    return true; // Jeśli liczby są takie same, uznajemy odpowiedź za poprawną
+  }
+
+  // 2️⃣ **Jeśli użytkownik podał liczbę i poprawne słowo kluczowe, akceptujemy**
+  if (
+    userAnswer.includes(correctNumber?.[0]) &&
+    correctAnswer.split(" ").some((word) => userAnswer.includes(word))
+  ) {
+    return true;
+  }
+
+  return false; // W innym przypadku odpowiedź jest niepoprawna
 }
 
 module.exports = { startQuiz, checkAnswer };

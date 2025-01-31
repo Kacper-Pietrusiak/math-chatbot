@@ -16,22 +16,16 @@ async function generateMathTask(level, type = "random") {
     let prompt;
     if (type === "word") {
       prompt = `Wygeneruj unikalne zadanie matematyczne na poziomie trudności ${level}. 
-      Zadanie powinno być krótkie i zrozumiałe, napisane w jednym zdaniu, bez rozwiązania ani wyjaśnień. 
-      Przykład: "Ania ma 8 jabłek i oddaje 3. Ile jabłek jej zostanie?"`;
+      Zadanie powinno być krótkie i zrozumiałe, napisane w jednym zdaniu, bez rozwiązania ani wyjaśnień.`;
     } else if (type === "equation") {
       prompt = `Wygeneruj unikalne równanie matematyczne na poziomie trudności ${level}. 
       Równanie powinno być proste do rozwiązania i zapisane w formacie algebraicznym, np. "2x + 3 = 7". 
       Nie podawaj rozwiązania.`;
     } else {
-      // Jeśli użytkownik nie podał typu, losujemy między tekstowym a równaniem
       prompt =
         Math.random() > 0.5
-          ? `Wygeneruj unikalne zadanie matematyczne na poziomie trudności ${level}. 
-          Zadanie powinno być krótkie i zrozumiałe, napisane w jednym zdaniu, bez rozwiązania ani wyjaśnień. 
-          Przykład: "Ania ma 8 jabłek i oddaje 3. Ile jabłek jej zostanie?"`
-          : `Wygeneruj unikalne równanie matematyczne na poziomie trudności ${level}. 
-          Równanie powinno być proste do rozwiązania i zapisane w formacie algebraicznym, np. "2x + 3 = 7". 
-          Nie podawaj rozwiązania.`;
+          ? `Wygeneruj unikalne zadanie matematyczne na poziomie trudności ${level}.`
+          : `Wygeneruj unikalne równanie matematyczne na poziomie trudności ${level}.`;
     }
 
     const response = await openai.chat.completions.create({
@@ -43,16 +37,37 @@ async function generateMathTask(level, type = "random") {
     const question = response.choices?.[0]?.message?.content?.trim();
     console.log("✅ Wygenerowane zadanie matematyczne:", question);
 
-    if (!question) {
-      console.error("❌ AI zwróciło pustą odpowiedź!");
-      return null;
-    }
-
-    return question;
+    return question || null;
   } catch (error) {
     console.error("❌ Błąd podczas generowania zadania:", error);
     return null;
   }
 }
 
-module.exports = { generateMathTask };
+async function generateMathAnswer(question) {
+  try {
+    console.log("🔍 Generowanie odpowiedzi na pytanie:", question);
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "user",
+          content: `Oblicz to zadanie matematyczne i podaj tylko końcową odpowiedź: ${question}`,
+        },
+      ],
+      max_tokens: 50,
+    });
+
+    const answer = response.choices?.[0]?.message?.content?.trim();
+    console.log("✅ Wygenerowana odpowiedź:", answer);
+
+    return answer || null;
+  } catch (error) {
+    console.error("❌ Błąd podczas generowania odpowiedzi:", error);
+    return null;
+  }
+}
+
+// **Eksportujemy obie funkcje**
+module.exports = { generateMathTask, generateMathAnswer };
